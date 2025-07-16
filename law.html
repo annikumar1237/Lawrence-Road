@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Location-Based Google Form Auto-Prefill</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+    #formLink { display: none; font-size: 18px; color: blue; text-decoration: underline; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>🔄 Fetching your location...</h2>
+  <p id="status">Please wait while we capture your location.</p>
+  <a id="formLink" href="#" target="_blank">🚀 Open Check-In Form</a>
+
+  <script>
+    const targetLat = 28.682172;
+    const targetLon = 77.152054;
+    const radiusInMeters = 200;
+
+    function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function generateSimpleCode() {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const hour = String(now.getHours()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      return day + hour + month;
+    }
+
+    function getLocationAndGenerateLink() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const distance = getDistanceFromLatLonInMeters(lat, lon, targetLat, targetLon);
+
+          if (distance <= radiusInMeters) {
+            document.querySelector('h2').innerText = "✅ Location Verified!";
+            document.getElementById('status').innerText = `Within ${radiusInMeters}m: Latitude ${lat.toFixed(6)}, Longitude ${lon.toFixed(6)}`;
+
+            const googleFormBase = "https://docs.google.com/forms/d/e/1FAIpQLSdeBpg9REgKjth9psQm19Pn8sVWqRq9yyv9mZ2eN3otb5PGWw/viewform?usp=pp_url";
+            const secretCode = generateSimpleCode();
+
+            const filledFormLink = `${googleFormBase}&entry.2007994588=${lat.toFixed(6)}&entry.1088348376=${lon.toFixed(6)}&entry.1234567890=${secretCode}`;
+
+            const formLinkElement = document.getElementById('formLink');
+            formLinkElement.href = filledFormLink;
+            formLinkElement.style.display = "inline";
+            formLinkElement.innerText = `🚀 Click Here to Submit Check-In (Code: ${secretCode})`;
+          } else {
+            document.querySelector('h2').innerText = "❌ Outside Allowed Area";
+            document.getElementById('status').innerText = `You are ${Math.round(distance)} meters away from the allowed location.`;
+          }
+        }, function (error) {
+          document.querySelector('h2').innerText = "❌ Failed to Fetch Location";
+          document.getElementById('status').innerText = "Error: " + error.message;
+        });
+      } else {
+        document.querySelector('h2').innerText = "❌ Geolocation Not Supported";
+        document.getElementById('status').innerText = "Your browser does not support location fetching.";
+      }
+    }
+
+    getLocationAndGenerateLink();
+  </script>
+</body>
+</html>
