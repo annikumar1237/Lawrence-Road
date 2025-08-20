@@ -23,11 +23,12 @@
   <a id="formLink" href="#" target="_blank">🚀 Open Check-In Form</a>
 
   <script>
-    // ✅ Updated Coordinates
+    // 🎯 Target Location
     const targetLat = 28.682222;
     const targetLon = 77.151868;
     const radiusInMeters = 200;
 
+    // 📏 Distance Calculation
     function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -40,6 +41,7 @@
       return R * c;
     }
 
+    // 🔠 Secret Code Generator Helpers
     function getAlphabet(index) {
       const alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       return alphabets[index % 26];
@@ -57,8 +59,8 @@
       const month = now.getMonth() + 1;
       const monthStr = String(month).padStart(2, '0');
 
-      const letter1 = getAlphabet(hour);   // Based on hour
-      const letter2 = getAlphabet(month);  // Based on month
+      const letter1 = getAlphabet(hour);
+      const letter2 = getAlphabet(month);
 
       const random1 = getRandomInt(100, 999);
       const random2 = getRandomInt(10, 99);
@@ -67,6 +69,7 @@
       return `${random1}-${mainCode}-${random2}`;
     }
 
+    // 📍 Main Logic
     function getLocationAndGenerateLink() {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(function (position) {
@@ -78,13 +81,11 @@
             document.querySelector('h2').innerText = "✅ Location Verified!";
             document.getElementById('status').innerText = `Within ${radiusInMeters}m: Latitude ${lat.toFixed(6)}, Longitude ${lon.toFixed(6)}`;
 
-            const googleFormBase = "https://docs.google.com/forms/d/e/1FAIpQLSeKx3J8A_OqiAbJYBpJ7xX93hfhfkmKrEUnFbN5em6vyKtNog/viewform?usp=dialog";
+            const googleFormBase = "https://docs.google.com/forms/d/e/1FAIpQLSeKx3J8A_OqiAbJYBpJ7xX93hfhfkmKrEUnFbN5em6vyKtNog/viewform?usp=pp_url";
             const secretCode = generateSimpleCode();
 
-            const filledFormLink = `${googleFormBase}
-              &entry.2007994588=${lat.toFixed(6)}
-              &entry.1088348376=${lon.toFixed(6)}
-              &entry.1749849562=${secretCode}`;
+            // ✅ Prefilled Field IDs
+            const filledFormLink = `${googleFormBase}&entry.604268084=${lat.toFixed(6)}&entry.1437449729=${lon.toFixed(6)}&entry.88238573=${secretCode}`;
 
             const formLinkElement = document.getElementById('formLink');
             formLinkElement.href = filledFormLink;
