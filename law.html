@@ -1,48 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Location-Based Google Form Auto-Prefill</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>Location-Based Leave Application</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
       text-align: center;
-      min-height: 100vh;
-      position: relative;
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    #status {
+      margin-bottom: 20px;
+      font-weight: bold;
     }
     #formLink {
       display: none;
-      font-size: 18px;
-      text-decoration: underline;
-      cursor: pointer;
-      color: blue;
+      margin: 15px 0;
+      padding: 12px 18px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 16px;
     }
-    #leaveLink { 
-      color: #0a7d16;
-      position: fixed;
-      left: 50%;
-      bottom: 40%;   /* 👈 center ke thoda upar */
-      transform: translateX(-50%);
-      font-weight: bold;
-      font-size: 18px;
-      text-decoration: underline;
-      cursor: pointer;
+    #leaveForm {
+      margin-top: 40vh; /* aadhe page se thoda upar */
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      background: #f9f9f9;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
     }
-    #status { margin: 8px 0 4px; }
   </style>
 </head>
 <body>
-  <h2>🔄 Fetching your location...</h2>
-  <p id="status">Please wait while we capture your location.</p>
+  <h2>📍 Checking Location...</h2>
+  <p id="status">Please wait while we verify your location...</p>
+  <a id="formLink" target="_blank">Open Google Form</a>
 
-  <!-- Primary (inside radius) -->
-  <a id="formLink" href="#" target="_blank">🚀 Open Check-In Form</a>
+  <!-- Leave Application Form -->
+  <div id="leaveForm">
+    <h3>Leave Application Form</h3>
+    <form>
+      <label for="name">Name:</label><br>
+      <input type="text" id="name" name="name" required><br><br>
 
-  <!-- Secondary (Leave application - Always visible) -->
-  <a id="leaveLink" href="https://docs.google.com/forms/d/e/1FAIpQLSeLJG9dN7h4CwLlOSQzPQi3t9H_IGD1YsqFujzolceQ2f_hWg/viewform?usp=sharing&ouid=104726397492692696608" target="_blank">
-    📝 Leave Application Form
-  </a>
+      <label for="date">Date:</label><br>
+      <input type="date" id="date" name="date" required><br><br>
+
+      <label for="reason">Reason for Leave:</label><br>
+      <textarea id="reason" name="reason" rows="4" required></textarea><br><br>
+
+      <button type="submit">Submit Application</button>
+    </form>
+  </div>
 
   <script>
     const targetLat = 28.682172;
@@ -54,9 +71,9 @@
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a =
-        Math.sin(dLat / 2) ** 2 +
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) ** 2;
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     }
@@ -88,54 +105,43 @@
       return `${random1}-${mainCode}-${random2}`;
     }
 
-    const h2 = document.querySelector('h2');
-    const statusEl = document.getElementById('status');
-    const formLinkEl = document.getElementById('formLink');
-
     function getLocationAndGenerateLink() {
-      if (!("geolocation" in navigator)) {
-        h2.innerText = "❌ Geolocation Not Supported";
-        statusEl.innerText = "Your browser does not support location fetching.";
-        return;
-      }
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const distance = getDistanceFromLatLonInMeters(lat, lon, targetLat, targetLon);
 
-      navigator.geolocation.getCurrentPosition(function (position) {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-        const distance = getDistanceFromLatLonInMeters(lat, lon, targetLat, targetLon);
+          // yaha tera naya base link
+          const googleFormBase = "https://docs.google.com/forms/d/e/1FAIpQLSeKx3J8A_OqiAbJYBpJ7xX93hfhfkmKrEUnFbN5em6vyKtNog/viewform?usp=pp_url";
 
-        if (distance <= radiusInMeters) {
-          h2.innerText = "✅ Location Verified!";
-          statusEl.innerText = `Within ${radiusInMeters} m: Lat ${lat.toFixed(6)}, Lon ${lon.toFixed(6)}`;
-
-          const googleFormBase = "https://docs.google.com/forms/d/e/1FAIpQLSdeBpg9REgKjth9psQm19Pn8sVWqRq9yyv9mZ2eN3otb5PGWw/viewform?usp=pp_url";
           const secretCode = generateSimpleCode();
 
-          const params = new URLSearchParams({
-            "entry.2007994588": lat.toFixed(6),
-            "entry.1088348376": lon.toFixed(6),
-            "entry.1749849562": secretCode
-          });
+          const filledFormLink = `${googleFormBase}
+            &entry.88238573=${lat.toFixed(6)}
+            &entry.604268084=${lon.toFixed(6)}
+            &entry.1437449729=${secretCode}`;
 
-          const filledFormLink = `${googleFormBase}&${params.toString()}`;
+          if (distance <= radiusInMeters) {
+            document.querySelector('h2').innerText = "✅ Location Verified!";
+            document.getElementById('status').innerText = `Within ${radiusInMeters}m: Latitude ${lat.toFixed(6)}, Longitude ${lon.toFixed(6)}`;
 
-          formLinkEl.href = filledFormLink;
-          formLinkEl.style.display = "inline";
-          formLinkEl.innerText = `🚀 Click Here to Submit Check-In (Code: ${secretCode})`;
-        } else {
-          h2.innerText = "❌ Outside Allowed Area";
-          statusEl.innerText = `You are ${Math.round(distance)} meters away from the allowed location.`;
-          formLinkEl.style.display = "none";
-        }
-      }, function (error) {
-        h2.innerText = "❌ Failed to Fetch Location";
-        statusEl.innerText = "Error: " + error.message;
-        formLinkEl.style.display = "none";
-      }, {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 15000
-      });
+            const formLinkElement = document.getElementById('formLink');
+            formLinkElement.href = filledFormLink;
+            formLinkElement.style.display = "inline";
+            formLinkElement.innerText = `🚀 Click Here to Submit Check-In (Code: ${secretCode})`;
+          } else {
+            document.querySelector('h2').innerText = "❌ Outside Allowed Area";
+            document.getElementById('status').innerText = `You are ${Math.round(distance)} meters away from the allowed location.`;
+          }
+        }, function (error) {
+          document.querySelector('h2').innerText = "❌ Failed to Fetch Location";
+          document.getElementById('status').innerText = "Error: " + error.message;
+        });
+      } else {
+        document.querySelector('h2').innerText = "❌ Geolocation Not Supported";
+        document.getElementById('status').innerText = "Your browser does not support location fetching.";
+      }
     }
 
     getLocationAndGenerateLink();
