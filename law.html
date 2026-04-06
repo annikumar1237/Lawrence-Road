@@ -22,7 +22,7 @@
       color: #0a7d16;
       position: fixed;
       left: 50%;
-      bottom: 40%;   /* 👈 center ke thoda upar */
+      bottom: 40%;
       transform: translateX(-50%);
       font-weight: bold;
       font-size: 18px;
@@ -36,17 +36,21 @@
   <h2>🔄 Fetching your location...</h2>
   <p id="status">Please wait while we capture your location.</p>
 
-  <!-- Primary (inside radius) -->
+  <!-- Primary -->
   <a id="formLink" href="#" target="_blank">🚀 Open Check-In Form</a>
 
-  <!-- Secondary (Leave application - Always visible) -->
-  <a id="leaveLink" href="https://docs.google.com/forms/d/e/1FAIpQLSeLJG9dN7h4CwLlOSQzPQi3t9H_IGD1YsqFujzolceQ2f_hWg/viewform?usp=sharing&ouid=104726397492692696608" target="_blank">
+  <!-- Leave Form -->
+  <a id="leaveLink" href="https://docs.google.com/forms/d/e/1FAIpQLSeLJG9dN7h4CwLlOSQzPQi3t9H_IGD1YsqFujzolceQ2f_hWg/viewform?usp=sharing" target="_blank">
     📝 Leave Application Form
   </a>
 
   <script>
-    const targetLat = 28.682172;
-    const targetLon = 77.152054;
+    // ✅ MULTIPLE LOCATIONS
+    const locations = [
+      { lat: 28.682172, lon: 77.152054 },      // Location 1
+      { lat: 28.42460883, lon: 77.06866501 }   // Location 2
+    ];
+
     const radiusInMeters = 200;
 
     function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
@@ -59,6 +63,16 @@
         Math.sin(dLon / 2) ** 2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
+    }
+
+    function isWithinAnyLocation(userLat, userLon) {
+      return locations.some(loc => {
+        const distance = getDistanceFromLatLonInMeters(
+          userLat, userLon,
+          loc.lat, loc.lon
+        );
+        return distance <= radiusInMeters;
+      });
     }
 
     function getAlphabet(index) {
@@ -102,11 +116,10 @@
       navigator.geolocation.getCurrentPosition(function (position) {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
-        const distance = getDistanceFromLatLonInMeters(lat, lon, targetLat, targetLon);
 
-        if (distance <= radiusInMeters) {
+        if (isWithinAnyLocation(lat, lon)) {
           h2.innerText = "✅ Location Verified!";
-          statusEl.innerText = `Within ${radiusInMeters} m: Lat ${lat.toFixed(6)}, Lon ${lon.toFixed(6)}`;
+          statusEl.innerText = `Allowed Area: Lat ${lat.toFixed(6)}, Lon ${lon.toFixed(6)}`;
 
           const googleFormBase = "https://docs.google.com/forms/d/e/1FAIpQLSeKx3J8A_OqiAbJYBpJ7xX93hfhfkmKrEUnFbN5em6vyKtNog/viewform?usp=pp_url";
           const secretCode = generateSimpleCode();
@@ -122,11 +135,13 @@
           formLinkEl.href = filledFormLink;
           formLinkEl.style.display = "inline";
           formLinkEl.innerText = `🚀 Click Here to Submit Check-In (Code: ${secretCode})`;
+
         } else {
           h2.innerText = "❌ Outside Allowed Area";
-          statusEl.innerText = `You are ${Math.round(distance)} meters away from the allowed location.`;
+          statusEl.innerText = "You are not within any allowed location.";
           formLinkEl.style.display = "none";
         }
+
       }, function (error) {
         h2.innerText = "❌ Failed to Fetch Location";
         statusEl.innerText = "Error: " + error.message;
