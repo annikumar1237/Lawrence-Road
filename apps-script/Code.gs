@@ -90,10 +90,15 @@ function attendanceLimit_(key,limit,seconds){
 function attendancePerson_(email){
   const sheet=attendanceBook_().getSheetByName('Deor List');
   if(!sheet||sheet.getLastRow()<3)return null;
-  const values=sheet.getRange(3,9,sheet.getLastRow()-2,3).getValues();
-  const matches=values.filter(r=>String(r[0]).trim().toLowerCase()===email);
-  if(matches.length!==1)return null;
-  return {dob:matches[0][2]};
+  // Read Mobile, Email, Designation and DOB. Accept duplicate directory rows only
+  // when they clearly describe the same person (same nonblank phone and DOB).
+  const values=sheet.getRange(3,8,sheet.getLastRow()-2,4).getValues();
+  const matches=values.filter(r=>String(r[1]).trim().toLowerCase()===email);
+  if(!matches.length)return null;
+  const phones=matches.map(r=>String(r[0]||'').replace(/\D/g,''));
+  const dobs=matches.map(r=>attendanceDob_(r[3]));
+  if(matches.length>1&&(phones[0]===''||!dobs[0]||phones.some(p=>p!==phones[0])||dobs.some(d=>d!==dobs[0])))return null;
+  return {dob:matches[0][3]};
 }
 function attendanceDob_(value){
   if(value instanceof Date&&!isNaN(value))return Utilities.formatDate(value,'Asia/Kolkata','yyyy-MM-dd');
@@ -157,6 +162,7 @@ function attendanceVerifyOtp(challenge,code){
     cache.remove('otp:'+challenge);cache.remove('activeOtp:'+key);return attendanceNewSession_(record.email);
   });
 }
+
 function attendanceLogout(token){
   token=String(token||'');if(token.length===72)CacheService.getScriptCache().remove('session:'+attendanceHash_(token));return true;
 }
